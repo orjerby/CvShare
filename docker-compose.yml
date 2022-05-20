@@ -1,0 +1,117 @@
+version: "3.8"
+services:
+    rabbitmq:
+        image: rabbitmq:3.9.15-management
+        container_name: rabbitmq
+        hostname: rabbitmq
+        #volumes:
+            #- /var/lib/rabbitmq
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        environment:
+            - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+            - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    cvs:
+        container_name: cvs
+        build:
+            context: ./cvs
+            dockerfile: Dockerfile
+        volumes:
+            - ./cvs:/project/workspace/cvs/
+            - /project/workspace/cvs/node_modules
+            #- /project/workspace/cvs/dist
+            #- ~/.gitconfig:/root/.gitconfig
+        environment:
+            - MONGODB_URI_CVS=${MONGODB_URI_CVS}
+            - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+            - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+            - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+        depends_on:
+            - rabbitmq
+    auth:
+        container_name: auth
+        build:
+            context: ./auth
+            dockerfile: Dockerfile
+        volumes:
+            - ./auth:/project/workspace/auth/
+            - /project/workspace/auth/node_modules
+            #- /project/workspace/auth/dist
+            #- ~/.gitconfig:/root/.gitconfig
+        environment:
+            - MONGODB_URI_AUTH=${MONGODB_URI_AUTH}
+            - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+            - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+            - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+            - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+        depends_on:
+            - rabbitmq
+    users:
+        container_name: users
+        build:
+            context: ./users
+            dockerfile: Dockerfile
+        volumes:
+            - ./users:/project/workspace/users/
+            - /project/workspace/users/node_modules
+            #- /project/workspace/users/dist
+            #- ~/.gitconfig:/root/.gitconfig
+        environment:
+            - MONGODB_URI_USERS=${MONGODB_URI_USERS}
+            - ACCESS_TOKEN_SECRET=${ACCESS_TOKEN_SECRET}
+            - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+            - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+            - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+        depends_on:
+            - rabbitmq
+    notifications:
+        container_name: notifications
+        build:
+            context: ./notifications
+            dockerfile: Dockerfile
+        volumes:
+            - ./notifications:/project/workspace/notifications/
+            - /project/workspace/notifications/node_modules
+            #- /project/workspace/users/dist
+            #- ~/.gitconfig:/root/.gitconfig
+        environment:
+            - EMAIL=${EMAIL}
+            - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+            - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+            - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+        depends_on:
+            - rabbitmq
+    gateway:
+        container_name: gateway
+        build:
+            context: ./gateway
+            dockerfile: Dockerfile
+        ports:
+            - 8080:3000
+        volumes:
+            - ./gateway:/project/workspace/gateway/
+            - /project/workspace/gateway/node_modules
+            #- /project/workspace/gateway/dist
+            #- ~/.gitconfig:/root/.gitconfig
+        environment:
+            - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+            - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+        depends_on:
+            - rabbitmq
+    frontend:
+        container_name: frontend
+        build:
+            context: ./frontend
+            dockerfile: Dockerfile
+        ports:
+            - 19000:19000
+            - 19001:19001
+            - 19002:19002
+        environment:
+            - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+            - REACT_NATIVE_PACKAGER_HOSTNAME=${REACT_NATIVE_PACKAGER_HOSTNAME}
+        volumes:
+            - ./frontend:/project/workspace/frontend/
+            - /project/workspace/frontend/node_modules
+            #- ~/.gitconfig:/root/.gitconfig
